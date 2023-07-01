@@ -7,44 +7,60 @@ public class Shop {
 
     private final File wonToys = new File("wonToys.txt");
     private final ArrayDeque<Toy> outQueue = new ArrayDeque<>();
-    private final ArrayList<ToyNote> toysList = new ArrayList<>();
+    private final Map<Toy, Integer> toysList = new HashMap<>();
 
 
-    Shop(ToyNote... toys) {
-        this.putToy(toys);
-        try (FileWriter writer = new FileWriter(this.wonToys, false)) {
-            writer.write("Won toys:\n");
-            writer.flush();
-        }
-        catch (IOException ex) {
-            System.out.println(ex.getMessage());
-        }
+    Shop(Toy... toys) {
+        putToys(toys);
+        createEmptyOutFile();
+    }
+
+    Shop(Toy toy, int count) {
+        putToy(toy, count);
+        createEmptyOutFile();
     }
 
 
-    public void viewShop() {
-        System.out.println("Toys in shop:");
-        for (ToyNote toyNote : this.toysList) {
-            System.out.println("\t" + toyNote);
+    public void putToys(Toy... toys) {
+        for (Toy toy : toys) {
+            if (toy == null) continue;
+            this.toysList.put(toy, 1);
         }
-        if (isShopEmpty()) System.out.println("\tNOT TOY!");
     }
 
-    public void viewWonToys() {
-        System.out.println("Won toys in queue:");
-        for (Toy toy : this.outQueue) {
-            System.out.println("\t" + toy);
+    public void putToy(Toy toy, int count) {
+        if (toy == null) return;
+        if (count < 0) {
+            removeToy(toy, count);
+            return;
         }
-        if (isWonEmpty()) System.out.println("\tNOT TOY!");
+        if (this.toysList.containsKey(toy)) {
+            int currentCount = this.toysList.get(toy);
+            this.toysList.put(toy, currentCount + count);
+        } else {
+            this.toysList.put(toy, Math.max(1, count));
+        }
     }
 
-    public void viewAll() {
-        viewShop();
-        viewWonToys();
+    public void removeToy(Toy toy, int count) {
+        if (!this.toysList.containsKey(toy)) {
+            System.out.println("Toy not found!");
+            return;
+        }
+        int currentCount = this.toysList.get(toy);
+        if (currentCount <= count) {
+            removeToy(toy);
+            return;
+        }
+        this.toysList.put(toy, currentCount - count);
     }
 
-    public void putToy(ToyNote... toys) {
-        this.toysList.addAll(Arrays.asList(toys));
+    public void removeToy(Toy toy) {
+        if (!this.toysList.containsKey(toy)) {
+            System.out.println("Toy not found!");
+            return;
+        }
+        this.toysList.remove(toy);
     }
 
     public void playToy() {
@@ -52,20 +68,20 @@ public class Shop {
             System.out.println("No toys in shop! Put him and try play again!");
             return;
         }
-        ArrayList<ToyNote> randomToys = new ArrayList<>();
-        for (ToyNote toy : this.toysList) {
-            for (int i = 0; i < toy.getCount() * toy.getPriority(); i++) {
-                randomToys.add(toy);
+        ArrayList<Toy> randomToys = new ArrayList<>();
+        for (Map.Entry<Toy, Integer> entry: this.toysList.entrySet()) {
+            for (int i = 0;
+                 i < entry.getValue() * entry.getKey().getPriority(); i++) {
+                randomToys.add(entry.getKey());
             }
         }
 
         int randomIdx = new Random().nextInt(randomToys.size());
-        ToyNote randomToy = randomToys.get(randomIdx);
+        Toy randomToy = randomToys.get(randomIdx);
 
-        if (randomToy.getCount() <= 1) this.toysList.remove(randomToy);
-        randomToy.setCount(randomToy.getCount() - 1);
+        removeToy(randomToy, 1);
 
-        this.outQueue.add(new Toy(randomToy.getName(), randomToy.getId()));
+        this.outQueue.add(randomToy);
         System.out.printf("Toy %s won! \n", outQueue.getLast());
     }
 
@@ -85,6 +101,27 @@ public class Shop {
         System.out.println("Toy getting!");
     }
 
+    public void viewShop() {
+        System.out.println("Toys in shop:");
+        for (Map.Entry<Toy, Integer> entry: this.toysList.entrySet()) {
+            System.out.printf("\t%s- %d ptc.\n", entry.getKey(), entry.getValue());
+        }
+        if (isShopEmpty()) System.out.println("\tNOT TOY!");
+    }
+
+    public void viewWonToys() {
+        System.out.println("Won toys in queue:");
+        for (Toy toy : this.outQueue) {
+            System.out.println("\t" + toy);
+        }
+        if (isWonEmpty()) System.out.println("\tNOT TOY!");
+    }
+
+    public void viewAll() {
+        viewShop();
+        viewWonToys();
+    }
+
     public boolean isWonEmpty() {
         return this.outQueue.isEmpty();
     }
@@ -93,9 +130,9 @@ public class Shop {
         return this.toysList.isEmpty();
     }
 
-    public ToyNote findToy(int id) {
-        for (ToyNote toyNote : this.toysList) {
-            if (toyNote.getId() == id) return toyNote;
+    public Toy findToy(int id) {
+        for (Map.Entry<Toy, Integer> toyNote : this.toysList.entrySet()) {
+            if (toyNote.getKey().getId() == id) return toyNote.getKey();
         }
         return null;
     }
@@ -108,12 +145,37 @@ public class Shop {
         findToy(id).setPriority(priority);
     }
 
+    public void changeToyCount(int id, int count) {
+        Toy foundToy = findToy(id);
+        if (foundToy == null) {
+            System.out.println("Toy not found!");
+            return;
+        }
+
+        if (count <= 0) {
+            removeToy(foundToy);
+        }
+        else {
+            this.toysList.put(foundToy, count);
+        }
+    }
 
     public ArrayList<Toy> getOutQueue() {
         return new ArrayList<>(this.outQueue);
     }
 
-    public ArrayList<ToyNote> getToysList() {
+    public Map<Toy, Integer> getToysList() {
         return toysList;
+    }
+
+
+    private void createEmptyOutFile() {
+        try (FileWriter writer = new FileWriter(this.wonToys, false)) {
+            writer.write("Won toys:\n");
+            writer.flush();
+        }
+        catch (IOException ex) {
+            System.out.println(ex.getMessage());
+        }
     }
 }

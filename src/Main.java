@@ -1,15 +1,12 @@
-//Добавить имеющуюся игрушку
-
 public class Main {
     public static void main(String[] args) {
-        Shop shop = new Shop(new ToyNote("Bear", 2, 2), new ToyNote("Cat"), new ToyNote("Dog"));
-        shop.viewAll();
+        Toy cat = new Toy("Cat", 3);
+        Toy dog = new Toy("Dog");
+        Shop shop = new Shop(new Toy("Bear", 3), new Toy("Rabbit"));
+        shop.putToys(cat, dog);
+        shop.putToy(new Toy("Snake", 2), 2);
 
-        System.out.println();
-        System.out.println(shop.findToy(1));
-        shop.changeToyPriority(1, 1);
-        System.out.println(shop.findToy(1));
-        System.out.println();
+        shop.viewAll();
 
         shop.playToy();
         shop.playToy();
@@ -18,7 +15,13 @@ public class Main {
         shop.viewAll();
 
         shop.getToy();
-        shop.getToy();
+
+        shop.viewAll();
+
+        shop.changeToyPriority(5, 4);
+        shop.removeToy(dog);
+        shop.changeToyCount(1, -5);
+        shop.putToy(shop.findToy(3), 4);
 
         shop.viewAll();
     }
